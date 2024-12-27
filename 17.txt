@@ -1,0 +1,297 @@
+import openpyxl
+from openpyxl import Workbook
+
+# Классы деталей, процессора, материнской платы, памяти и компьютера
+
+class Detail:
+    def __init__(self, name, performance):
+        self.name = name  # Название детали
+        self.performance = performance  # Производительность детали (мощность)
+
+    def __repr__(self):
+        # Представление детали, выводя ее название и производительность
+        return f"{self.name} (Производительность: {self.performance})"
+
+    def __lt__(self, other):
+        """Меньше: сравнение по производительности"""
+        return self.performance < other.performance
+
+    def __eq__(self, other):
+        """Равно: сравнение по производительности"""
+        return self.performance == other.performance
+
+    def __gt__(self, other):
+        """Больше: сравнение по производительности"""
+        return self.performance > other.performance
+
+
+class Processor(Detail):
+    def __init__(self, name, performance, cores):
+        super().__init__(name, performance)  # Наследуем характеристики из класса Detail
+        self.cores = cores  # Количество ядер процессора
+
+    def __repr__(self):
+        # Представление процессора с указанием его ядер и производительности
+        return f"Процессор: {self.name}, Ядра: {self.cores}, Производительность: {self.performance}"
+
+
+class Motherboard(Detail):
+    def __init__(self, name, performance, chipset):
+        super().__init__(name, performance)  # Наследуем характеристики из класса Detail
+        self.chipset = chipset  # Чипсет материнской платы
+
+    def __repr__(self):
+        # Представление материнской платы с указанием чипсета и производительности
+        return f"Материнская плата: {self.name}, Чипсет: {self.chipset}, Производительность: {self.performance}"
+
+
+class Memory(Detail):
+    def __init__(self, name, performance, size):
+        super().__init__(name, performance)  # Наследуем характеристики из класса Detail
+        self.size = size  # Размер памяти в ГБ
+
+    def __repr__(self):
+        # Представление памяти с указанием размера и производительности
+        return f"Память: {self.name}, Размер: {self.size} ГБ, Производительность: {self.performance}"
+
+
+class Computer:
+    def __init__(self):
+        self.parts = []  # Список деталей компьютера
+
+    def add_part(self, part):
+        self.parts.append(part)  # Добавление детали в список
+
+    def __repr__(self):
+        # Представление компьютера с перечислением всех его деталей
+        return f"Компьютер с деталями: {', '.join([str(part) for part in self.parts])}"
+
+    def upgrade(self, part_name, new_part):
+        """Метод модернизации (замена детали на более мощную)"""
+        # Проходим по всем деталям компьютера и ищем нужную деталь для замены
+        for i, part in enumerate(self.parts):
+            if part.name == part_name and new_part.performance > part.performance:
+                print(f"Модернизация {part_name} на {new_part.name}")
+                self.parts[i] = new_part  # Заменяем деталь на более мощную
+                return
+        print(f"Модернизация для {part_name} невозможна.")  # Если модернизация невозможна
+
+    def repair(self, part_name):
+        """Метод ремонта (восстановление детали)"""
+        for part in self.parts:
+            if part.name == part_name:
+                print(f"Ремонт {part_name}.")  # Сообщение о ремонте
+                return
+        print(f"Деталь {part_name} не найдена для ремонта.")  # Если деталь не найдена для ремонта
+
+    def to_excel(self, filename):
+        """Метод для сохранения информации о компьютере в Excel-файл"""
+        wb = Workbook()  # Создание нового Excel файла
+        ws = wb.active  # Доступ к активному листу
+        ws.title = "Детали компьютера"  # Название листа
+
+        # Заголовки на русском
+        ws.append(["Название детали", "Тип детали", "Производительность", "Дополнительная информация"])
+
+        # Добавляем детали компьютера в таблицу
+        for part in self.parts:
+            if isinstance(part, Processor):  # Если деталь - процессор
+                ws.append([part.name, "Процессор", part.performance, f"Ядра: {part.cores}"])
+            elif isinstance(part, Motherboard):  # Если деталь - материнская плата
+                ws.append([part.name, "Материнская плата", part.performance, f"Чипсет: {part.chipset}"])
+            elif isinstance(part, Memory):  # Если деталь - память
+                ws.append([part.name, "Память", part.performance, f"Размер: {part.size} ГБ"])
+
+        # Сохраняем файл
+        wb.save(filename)
+        print(f"Информация о компьютере сохранена в файл {filename}")
+
+
+# Создание деталей и компьютера
+processor1 = Processor("Intel i5", 3000, 4)  # Создаем процессор
+motherboard1 = Motherboard("ASUS Z490", 1500, "Z490")  # Создаем материнскую плату
+memory1 = Memory("Corsair Vengeance", 1000, 16)  # Создаем память
+
+# Создание компьютера и добавление деталей
+computer1 = Computer()  # Создаем объект компьютера
+computer1.add_part(processor1)  # Добавляем процессор
+computer1.add_part(motherboard1)  # Добавляем материнскую плату
+computer1.add_part(memory1)  # Добавляем память
+
+# Проверка модернизации: замена процессора на более мощный
+processor2 = Processor("Intel i7", 4000, 8)  # Создаем новый процессор с большей производительностью
+computer1.upgrade("Intel i5", processor2)  # Модернизация процессора i5 на i7
+print(computer1)  # Выводим информацию о компьютере после модернизации
+
+# Проверка ремонта: "ремонт" памяти Corsair Vengeance
+computer1.repair("Corsair Vengeance")  # Ремонт памяти
+print(computer1)  # Выводим информацию о компьютере после "ремонта"
+
+# Проверка модернизации с невозможной заменой (на процессор с меньшей производительностью)
+processor3 = Processor("Intel i3", 2000, 2)  # Создаем процессор с меньшей производительностью
+computer1.upgrade("Intel i7", processor3)  # Попытка заменить i7 на более слабый i3
+
+# Проверка метода ремонта для отсутствующей детали
+computer1.repair("Kingston HyperX")  # Попытка ремонта несуществующей детали
+
+
+!!!!!
+from detail import Detail - в каждом модуле подкласса
+****
+в модуле компьютера:
+from processor import Processor  # Импортируем класс Processor
+from motherboard import Motherboard  # Импортируем класс Motherboard
+from memory import Memory  # Импортируем класс Memory
+****
+В главном:
+from processor import Processor
+from motherboard import Motherboard
+from memory import Memory
+from computer import Computer
+!!!!!
+
+С файлами но не работает:
+import openpyxl
+
+class Detail:
+    def __init__(self, name, performance):
+        self.name = name  # Название детали
+        self.performance = performance  # Производительность детали
+
+    def __repr__(self):
+        return f"{self.name} (Производительность: {self.performance})"
+
+
+class Processor(Detail):
+    def __init__(self, name, performance, cores):
+        super().__init__(name, performance)
+        self.cores = cores  # Количество ядер процессора
+
+    def __repr__(self):
+        return f"Процессор: {self.name}, Ядра: {self.cores}, Производительность: {self.performance}"
+
+
+class Motherboard(Detail):
+    def __init__(self, name, performance, chipset):
+        super().__init__(name, performance)
+        self.chipset = chipset  # Чипсет материнской платы
+
+    def __repr__(self):
+        return f"Материнская плата: {self.name}, Чипсет: {self.chipset}, Производительность: {self.performance}"
+
+
+class Memory(Detail):
+    def __init__(self, name, performance, size):
+        super().__init__(name, performance)
+        self.size = size  # Размер памяти в ГБ
+
+    def __repr__(self):
+        return f"Память: {self.name}, Размер: {self.size} ГБ, Производительность: {self.performance}"
+
+
+class Computer:
+    def __init__(self, name):
+        self.name = name  # Название компьютера
+        self.parts = []  # Список деталей, которые добавляются в компьютер
+
+    def add_part(self, part):
+        """Добавление детали в компьютер"""
+        self.parts.append(part)
+
+    def __repr__(self):
+        """Вывод списка всех деталей компьютера"""
+        return f"{self.name} с деталями: {', '.join([str(part) for part in self.parts])}"
+
+    def to_excel(self, filename):
+        """Запись информации о компьютере в Excel"""
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["Название компьютера", "Название детали", "Производительность"])
+
+        for part in self.parts:
+            ws.append([self.name, part.name, part.performance])
+
+        wb.save(filename)
+
+    def to_text(self, filename):
+        """Запись информации о компьютере в текстовый файл"""
+        with open(filename, 'w') as file:
+            file.write(f"Информация о компьютере: {self.name}\n")
+            for part in self.parts:
+                file.write(f"{part}\n")
+
+
+# Загрузка данных о компьютерах из текстового файла
+def load_computers_from_file(filename):
+    computers = []  # Здесь создаем пустой список компьютеров
+    try:
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+            current_computer = None
+            for line in lines:
+                line = line.strip()
+                if line.startswith("Компьютер:"):
+                    # Новый компьютер
+                    computer_name = line.split(":")[1].strip()
+                    current_computer = Computer(computer_name)
+                    computers.append(current_computer)
+                elif line.startswith("Деталь:"):
+                    # Добавляем деталь к текущему компьютеру
+                    detail_info = line.split(":")[1].strip().split(",")
+                    detail_name = detail_info[0].strip()
+                    detail_performance = int(detail_info[1].strip())
+                    part_type = detail_info[2].strip()
+
+                    if part_type == "Процессор":
+                        part = Processor(detail_name, detail_performance, int(detail_info[3].strip()))
+                    elif part_type == "Материнская плата":
+                        part = Motherboard(detail_name, detail_performance, detail_info[3].strip())
+                    elif part_type == "Память":
+                        part = Memory(detail_name, detail_performance, int(detail_info[3].strip()))
+
+                    if current_computer:
+                        current_computer.add_part(part)
+    except FileNotFoundError:
+        print(f"Файл {filename} не найден.")
+    except Exception as e:
+        print(f"Произошла ошибка при загрузке данных: {e}")
+
+    return computers
+
+
+# Сохранение данных о компьютерах в текстовый файл
+def save_computers_to_file(computers, filename):
+    with open(filename, 'w') as file:
+        for computer in computers:
+            file.write(f"Компьютер: {computer.name}\n")
+            for part in computer.parts:
+                part_type = part.__class__.__name__
+                file.write(f"Деталь: {part.name}, Производительность: {part.performance}, Тип: {part_type}\n")
+
+
+# Демонстрация работы программы
+computers = load_computers_from_file("computers.txt")
+
+# Проверяем, были ли загружены компьютеры
+if computers:
+    # Выводим информацию о выбранном компьютере в Excel
+    selected_computer = computers[0]  # Предположим, что мы выбираем первый компьютер
+    selected_computer.to_excel("selected_computer.xlsx")
+
+    # Выводим информацию о выбранном компьютере в текстовый файл
+    selected_computer.to_text("selected_computer.txt")
+
+    # Сохранение данных всех компьютеров обратно в текстовый файл
+    save_computers_to_file(computers, "computers_output.txt")
+else:
+    print("Не удалось загрузить компьютеры из файла.")
+Файл:
+Компьютер: Компьютер 1
+Деталь: Процессор, 3000, Процессор, 4
+Деталь: Материнская плата, 1000, Материнская плата, Chipset_X
+Деталь: Память, 500, Память, 16
+
+Компьютер: Компьютер 2
+Деталь: Процессор, 4000, Процессор, 8
+Деталь: Материнская плата, 1500, Материнская плата, Chipset_Y
+Деталь: Память, 600, Память, 32

@@ -1,0 +1,98 @@
+# Класс для представления посетителя
+class Visitor:
+    def __init__(self, visitor_id, name, dress_number):
+        self.visitor_id = visitor_id
+        self.name = name
+        self.dress_number = dress_number
+
+    def __str__(self):
+        return f"ID: {self.visitor_id}, Имя: {self.name}, Номер одежды: {self.dress_number}"
+
+
+# Класс для работы с гардеробом
+class Wardrobe:
+    def __init__(self):
+        self.check_in_file = 'check_in.txt'  # Файл для сдачи
+        self.check_out_file = 'check_out.txt'  # Файл для получения
+        self.visitors_list = []  # Список для хранения посетителей в очереди
+
+    # Сдача одежды
+    def check_in(self, visitor):
+        self.visitors_list.append(visitor)  # Добавляем в очередь
+        self._save_to_file(visitor, action="check_in")
+
+    # Получение одежды
+    def check_out(self, visitor_id):
+        for i, visitor in enumerate(self.visitors_list):
+            if visitor.visitor_id == visitor_id:
+                self.visitors_list.pop(i)  # Удаляем посетителя из очереди
+                self._save_to_file(visitor, action="check_out")
+                return visitor
+        return None  # Если посетитель не найден
+
+    # Сохранение данных о сдаче или получении в соответствующие файлы
+    def _save_to_file(self, visitor, action):
+        file_name = self.check_in_file if action == "check_in" else self.check_out_file
+        with open(file_name, 'a') as file:
+            file.write(f"{action.capitalize()} - {visitor}\n")
+
+    # Чтение всех данных из файлов
+    def read_file(self, action):
+        file_name = self.check_in_file if action == "check_in" else self.check_out_file
+        with open(file_name, 'r') as file:
+            return file.readlines()
+
+
+# Класс для работы администратора
+class Administrator:
+    def __init__(self, wardrobe):
+        self.wardrobe = wardrobe
+
+    def process_check_in(self, visitor):
+        print(f"Посетитель {visitor.name} сдает одежду.")
+        self.wardrobe.check_in(visitor)
+
+    def process_check_out(self, visitor_id):
+        visitor = self.wardrobe.check_out(visitor_id)
+        if visitor:
+            print(f"Посетитель {visitor.name} забрал свою одежду с номером {visitor.dress_number}.")
+        else:
+            print("Посетитель не найден или очередь пуста.")
+
+
+# Демонстрация работы программы
+if __name__ == "__main__":
+    # Создаем гардероб
+    wardrobe = Wardrobe()
+
+    # Создаем администратора
+    admin = Administrator(wardrobe)
+
+    # Ввод данных от пользователя
+    print("Добро пожаловать в систему гардероба!")
+    visitor_id = int(input("Введите ваш ID посетителя: "))
+    name = input("Введите ваше имя: ")
+    dress_number = int(input("Введите номер вашей одежды: "))
+
+    # Создаем объект посетителя
+    visitor = Visitor(visitor_id=visitor_id, name=name, dress_number=dress_number)
+
+    # Выбор действия
+    print("\nВыберите действие:")
+    print("1. Сдать одежду")
+    print("2. Забрать одежду")
+    action_choice = int(input("Введите ваш выбор (1 или 2): "))
+
+    # Обрабатываем выбор пользователя
+    if action_choice == 1:
+        admin.process_check_in(visitor)
+    elif action_choice == 2:
+        admin.process_check_out(visitor_id)
+    else:
+        print("Неверный выбор! Пожалуйста, перезапустите программу.")
+
+    # Показываем содержимое файлов с действиями
+    print("\nДанные о сдаче одежды:")
+    print("".join(wardrobe.read_file("check_in")))  # Показываем содержимое файла сдачи
+    print("\nДанные о получении одежды:")
+    print("".join(wardrobe.read_file("check_out")))  # Показываем содержимое файла получения

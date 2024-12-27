@@ -1,0 +1,199 @@
+# Импортируем необходимые библиотеки
+import openpyxl  # Для работы с Excel файлами
+
+# Класс Студента
+class Student:
+    # Конструктор класса для студента
+    def __init__(self, name, group, specialty):
+        self.name = name  # Имя студента
+        self.group = group.strip()  # Группа студента (удаляем лишние пробелы)
+        self.specialty = specialty.strip()  # Специальность студента (удаляем лишние пробелы)
+
+    # Переопределяем метод для вывода информации о студенте
+    def __repr__(self):
+        return f"Student(name={self.name}, group={self.group}, specialty={self.specialty})"
+
+# Класс Организации
+class Organization:
+    # Конструктор класса для организации
+    def __init__(self, name):
+        self.name = name  # Название организации
+        self.students = []  # Список студентов в организации
+
+    # Метод для добавления студента в организацию
+    def add(self, student):
+        if student not in self.students:  # Если студента еще нет в списке
+            self.students.append(student)  # Добавляем студента
+
+    # Переопределяем метод для вывода информации об организации
+    def __repr__(self):
+        return f"Organization(name={self.name}, students={len(self.students)})"
+
+# Класс Руководителя практики от организации
+class PracticeLeader:
+    # Конструктор для руководителя практики
+    def __init__(self, name, organization):
+        self.name = name  # Имя руководителя
+        self.organization = organization  # Организация, к которой прикреплен руководитель
+
+    # Метод для назначения студентов на практику
+    def assign_students_to_practice(self):
+        return [student.name for student in self.organization.students]  # Возвращаем имена студентов
+
+    # Переопределяем метод для вывода информации о руководителе практики
+    def __repr__(self):
+        return f"PracticeLeader(name={self.name}, organization={self.organization.name})"
+
+# Класс Заведующего отделением
+class DepartmentHead:
+    # Конструктор для заведующего отделением
+    def __init__(self, name):
+        self.name = name  # Имя заведующего
+        self.practice_coordinators = []  # Список координаторов практик
+
+    # Метод для добавления координатора практики
+    def add_practice_coordinator(self, coordinator):
+        self.practice_coordinators.append(coordinator)  # Добавляем координатора в список
+
+    # Переопределяем метод для вывода информации о заведующем
+    def __repr__(self):
+        return f"DepartmentHead(name={self.name}, coordinators={len(self.practice_coordinators)})"
+
+# Класс Начальника отдела практики
+class PracticeCoordinator:
+    # Конструктор для начальника отдела практики
+    def __init__(self, name):
+        self.name = name  # Имя координатора
+        self.organizations = []  # Список организаций, с которыми работает координатор
+
+    # Метод для добавления организации в список
+    def add_organization(self, organization):
+        self.organizations.append(organization)  # Добавляем организацию в список
+
+    # Метод для генерации отчета и его сохранения в файл
+    def generate_report(self, group=None):
+        report_data = []  # Список для хранения данных отчета
+
+        # Проходим по всем организациям
+        for organization in self.organizations:
+            # Проходим по всем студентам в организации
+            for student in organization.students:
+                # Если задана группа, проверяем, совпадает ли она с группой студента
+                if group and student.group != group.strip():
+                    continue  # Если группа не совпадает, пропускаем студента
+                # Добавляем информацию о студенте в отчет
+                report_data.append(
+                    f"Organization: {organization.name}, Student: {student.name}, Specialty: {student.specialty}, Group: {student.group}"
+                )
+
+        # Сохраняем отчет в текстовый файл
+        with open('practice_report.txt', 'w', encoding='utf-8') as file:
+            file.write("\n".join(report_data))  # Записываем все данные отчета в файл
+
+        # Сохраняем отчет в Excel файл
+        self.save_report_to_excel(report_data)
+
+        # Сообщение о том, что отчет записан в файл
+        print("Отчет успешно записан в файл practice_report.txt и practice_report.xlsx!")
+
+    # Метод для сохранения отчета в Excel
+    def save_report_to_excel(self, report_data):
+        # Создаем новый Excel файл
+        wb = openpyxl.Workbook()
+        sheet = wb.active  # Работаем с активным листом
+
+        # Добавляем заголовки в таблицу Excel
+        sheet.append(["Organization", "Student", "Specialty", "Group"])
+
+        # Добавляем данные отчета построчно
+        for row in report_data:
+            columns = row.split(", ")  # Разделяем строку на столбцы по запятой и пробелу
+            sheet.append([col.split(": ")[1] for col in columns])  # Добавляем каждую строку в Excel
+
+        # Сохраняем файл с отчетом
+        wb.save("practice_report.xlsx")
+
+    # Переопределяем метод для вывода информации о координаторе
+    def __repr__(self):
+        return f"PracticeCoordinator(name={self.name}, organizations={len(self.organizations)})"
+
+# Функция для чтения данных из текстового файла и создания объектов
+def read_data_from_file(input_data):
+    organizations = {}  # Словарь для хранения организаций
+    students = []  # Список для хранения студентов
+
+    with open(input_data, 'r', encoding='utf-8') as file:
+        for line in file:
+            # Пропускаем строки с комментариями или пустые строки
+            if line.startswith("#") or line.strip() == "":
+                continue
+
+            # Разбиваем строку на части
+            parts = line.split()
+
+            # Проверяем, что строка состоит из хотя бы 5 элементов
+            if len(parts) >= 5:
+                # Извлекаем ФИО (первые два слова)
+                name = ' '.join(parts[0:2])  # ФИО состоит из двух частей
+                # Группа (обычно одно слово)
+                group = parts[2]
+                # Специальность (одно слово)
+                specialty = parts[3]
+                # Организация (может состоять из нескольких слов, начиная с 4 элемента)
+                org_name = ' '.join(parts[4:])
+
+                # Создаем объект студента
+                student = Student(name, group, specialty)
+                students.append(student)
+
+                # Создаем или находим организацию
+                if org_name not in organizations:
+                    organizations[org_name] = Organization(org_name)
+
+                # Добавляем студента в организацию
+                organizations[org_name].add(student)
+            else:
+                # Если строка имеет неправильное количество элементов, выводим предупреждение
+                print(f"Неверный формат строки: {line.strip()}")
+
+    return list(organizations.values()), students
+
+# Пример использования
+organizations, students = read_data_from_file('input_data.txt')
+
+# Создаем объект координирующего практикой
+practice_coordinator = PracticeCoordinator(name="Елена Иванова")
+
+# Добавляем организации в координирующий класс
+for org in organizations:
+    practice_coordinator.add_organization(org)
+
+# Ввод группы через консоль
+group_choice = input("Введите группу для отчета (или нажмите Enter для отчета по всем группам): ").strip()
+
+# Если группа не введена, выводим отчет по всем группам
+if not group_choice:
+    print("Выведем отчет по всем группам.")
+    practice_coordinator.generate_report()
+else:
+    print(f"Выведем отчет для группы: {group_choice}.")
+    practice_coordinator.generate_report(group=group_choice)
+
+# Выводим данные об организациях и студентах
+for org in organizations:
+    print(org)
+for student in students:
+    print(student)
+Модули
+from teacher import Teacher
+from group import Group
+from discipline import Discipline
+from lesson import Lesson
+from journal import Journal
+Входной
+# Формат: ФИО, Группа, Специальность, Организация
+Иванов И.И. Группа1 Техника Организация_1
+Петрова П.П. Группа1 Экономика Организация_1
+Сидоров С.С. Группа2 Менеджмент Организация_2
+Алексеева А.А. Группа2 Менеджмент Организация_2
+Григорьев Г.Г. Группа3 Маркетинг Организация_3

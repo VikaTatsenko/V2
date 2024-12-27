@@ -1,0 +1,189 @@
+Для реализации онлайн-магазина, с учетом описанных процессов и ролей, предлагаю следующую структуру классов:
+
+Product — Класс для товара.
+Order — Класс для обработки заявок от клиентов.
+Warehouse — Класс для склада.
+Manager — Класс для менеджера, который обрабатывает заявки и взаимодействует с другими службами.
+DeliveryQueue — Очередь на отправку товаров.
+Expeditor — Класс для экспедитора, который занимается отправкой товаров.
+SupplyDepartment — Класс для отдела снабжения, который делает заказ у поставщика.
+Supplier — Класс для поставщика, который поставляет товары в магазин.
+DeliveryVehicle — Класс для машины, которая доставляет товары.
+Customer — Класс для клиента.
+
+import datetime  # Импортируем модуль для работы с датами и временем
+import math  # Импортируем модуль для математических операций, в том числе для расчета расстояний
+
+
+# Класс для представления товара
+class Product:
+    def __init__(self, name, price, quantity):
+        self.name = name  # Имя товара
+        self.price = price  # Цена товара
+        self.quantity = quantity  # Количество товара на складе
+
+    # Метод для проверки доступности товара на складе для заданного количества
+    def is_available(self, quantity):
+        return self.quantity >= quantity  # Возвращаем True, если товара достаточно, иначе False
+
+    # Метод для уменьшения количества товара на складе
+    def reduce_stock(self, quantity):
+        if self.is_available(quantity):  # Проверяем, достаточно ли товара
+            self.quantity -= quantity  # Уменьшаем количество товара на складе
+        else:
+            raise ValueError("Not enough stock available.")  # Если товара недостаточно, выбрасываем исключение
+
+    # Метод для пополнения товара на складе
+    def restock(self, quantity):
+        self.quantity += quantity  # Увеличиваем количество товара на складе
+
+    # Метод для сравнения товаров по имени
+    def __eq__(self, other):
+        if isinstance(other, Product):
+            return self.name == other.name  # Сравниваем товары по имени
+        return False  # Если объект не является товаром, возвращаем False
+
+    # Метод для представления товара в виде строки
+    def __repr__(self):
+        return f"Product(name={self.name}, price={self.price}, quantity={self.quantity})"  # Возвращаем строковое представление товара
+
+
+# Класс для представления заказа
+class Order:
+    def __init__(self, customer, product, quantity, order_date):
+        self.customer = customer  # Клиент, который оформил заказ
+        self.product = product  # Продукт, который был заказан
+        self.quantity = quantity  # Количество заказанного товара
+        self.order_date = order_date  # Дата оформления заказа
+        self.status = 'Accepted'  # Статус заказа (по умолчанию - принят)
+
+    # Метод для изменения статуса заказа
+    def set_status(self, status):
+        self.status = status  # Обновляем статус заказа
+
+    # Метод для вычисления общей стоимости заказа
+    def total_cost(self):
+        return self.product.price * self.quantity  # Стоимость = цена товара * количество
+
+    # Метод для сравнения заказов по продукту и количеству
+    def __eq__(self, other):
+        if isinstance(other, Order):
+            return self.product == other.product and self.quantity == other.quantity  # Сравниваем заказы по продукту и количеству
+        return False  # Если объект не является заказом, возвращаем False
+
+    # Метод для представления заказа в виде строки
+    def __repr__(self):
+        return f"Order(customer={self.customer.name}, product={self.product.name}, quantity={self.quantity}, status={self.status})"  # Строковое представление заказа
+
+
+# Класс для представления склада
+class Warehouse:
+    def __init__(self, latitude, longitude):
+        self.products = {}  # Словарь для хранения продуктов на складе
+        self.latitude = latitude  # Широта склада
+        self.longitude = longitude  # Долгота склада
+
+    # Метод для добавления товара на склад
+    def add_product(self, product):
+        if product.name in self.products:  # Если товар уже есть на складе
+            self.products[product.name].restock(product.quantity)  # Увеличиваем количество товара
+        else:
+            self.products[product.name] = product  # Добавляем новый товар на склад
+
+    # Метод для получения товара с учетом его количества
+    def get_product(self, product_name, quantity):
+        if product_name in self.products:  # Если товар есть на складе
+            product = self.products[product_name]
+            if product.is_available(quantity):  # Если товар доступен в нужном количестве
+                product.reduce_stock(quantity)  # Уменьшаем количество товара на складе
+                return product  # Возвращаем продукт
+        return None  # Если товар отсутствует на складе, возвращаем None
+
+    # Метод для расчета расстояния между складом и клиентом по формуле Хаверсина
+    def get_distance_to(self, customer):
+        R = 6371  # Радиус Земли в километрах
+        lat1, lon1 = self.latitude, self.longitude  # Координаты склада
+        lat2, lon2 = customer.latitude, customer.longitude  # Координаты клиента
+
+        # Преобразуем разницу в координатах в радианы
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+
+        # Формула Хаверсина для расчета расстояния между двумя точками на сфере
+        a = (math.sin(dlat / 2) ** 2 +
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+             math.sin(dlon / 2) ** 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R * c  # Расстояние между двумя точками в километрах
+        return distance
+
+    # Метод для получения количества продуктов на складе
+    def __len__(self):
+        return len(self.products)  # Возвращаем количество товаров на складе
+
+
+# Класс для представления менеджера
+class Manager:
+    def __init__(self, warehouse, supply_department):
+        self.warehouse = warehouse  # Ссылка на склад
+        self.supply_department = supply_department  # Ссылка на отдел снабжения
+
+    # Метод для обработки заказа
+    def process_order(self, order):
+        product = self.warehouse.get_product(order.product.name, order.quantity)  # Попытка получить товар с нужным количеством
+        if product:
+            order.set_status('Processed')  # Если товар есть на складе, меняем статус заказа на "Обработан"
+            return product  # Возвращаем продукт
+        else:
+            order.set_status('Out of stock')  # Если товара нет на складе, меняем статус на "Нет в наличии"
+            self.supply_department.place_order(order.product, order.quantity)  # Отправляем заказ в отдел снабжения
+
+
+# Класс для очереди на доставку
+class DeliveryQueue:
+    def __init__(self):
+        self.queue = []  # Список для хранения заказов и их расстояний
+
+    # Метод для добавления заказа в очередь на доставку
+    def add_to_queue(self, order, distance):
+        self.queue.append((order, distance))  # Добавляем кортеж (заказ, расстояние) в очередь
+
+    # Метод для получения списка заказов, которые находятся в радиусе
+    def get_orders_within_radius(self, radius):
+        return [order for order, distance in self.queue if distance <= radius]  # Фильтруем заказы по расстоянию
+
+    # Метод для получения общего количества заказов в очереди
+    def __len__(self):
+        return len(self.queue)  # Возвращаем количество заказов в очереди
+
+
+# Класс для представления экспедитора
+class Expeditor:
+    def __init__(self, delivery_queue):
+        self.delivery_queue = delivery_queue  # Ссылка на очередь доставки
+
+    # Метод для выполнения доставки
+    def deliver(self):
+        orders_to_deliver = self.delivery_queue.get_orders_within_radius(50)  # Получаем все заказы в радиусе 50 км
+        for order in orders_to_deliver:
+            order.set_status('Delivered')  # Меняем статус заказа на "Доставлено"
+            print(f"Order for {order.customer.name} has been delivered.")  # Выводим сообщение о доставке
+
+
+# Класс для отдела снабжения
+class SupplyDepartment:
+    def __init__(self, warehouse, supplier):
+        self.warehouse = warehouse  # Ссылка на склад
+        self.supplier = supplier  # Ссылка на поставщика
+
+    # Метод для размещения заказа у поставщика
+    def place_order(self, product, quantit
+
+Магический метод __eq__:
+В классе Product добавлен метод __eq__, который позволяет сравнивать товары по имени. Это полезно, чтобы проверить, являются ли два товара одинаковыми.
+В классе Order добавлен метод __eq__, который сравнивает заказы по продукту и количеству. Это позволяет легко проверять, одинаковы ли два заказа.
+Магический метод __len__:
+В классе Warehouse добавлен метод __len__, который возвращает количество товаров на складе.
+В классе DeliveryQueue добавлен метод __len__, который возвращает количество заказов в очереди на доставку.
+Метод __add__:
+Здесь мы не использовали метод __add__, так как класс не требует явного сложения объектов (например, сложения товаров или заказов). Однако, его можно использовать для комбинирования объектов, если это необходимо (например, складывать товары с одинаковым именем).

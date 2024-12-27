@@ -1,0 +1,297 @@
+Контекстная диаграмма — это диаграмма, которая отображает взаимодействие между системами и их окружением. Для вашей задачи (система "Библиотека") контекстная диаграмма будет отображать взаимодействие с Читателем, Библиотекарем, Администратором и самой системой библиотеки.
+
+Читатель:
+Просматривает книги.
+Оформляет заявку на выдачу книг (через библиотекаря).
+Библиотекарь:
+Выполняет операции по выдаче книг.
+Принятие книги обратно.
+Администратор:
+Добавление и удаление книг.
+Управление пользователями.
+Объяснение:
+
+Читатель взаимодействует с системой через библиотекаря (например, для получения книги) и может запрашивать книги.
+Библиотекарь управляет процессом выдачи книг и возврата.
+Администратор имеет доступ к управлению книгами, добавлению и удалению их из базы данных.
+                  
+import openpyxl
+
+
+import openpyxl  # Импортируем библиотеку для работы с Excel файлами
+
+class Book:
+    # Конструктор класса Книга
+    def __init__(self, book_id, title, author, genre, year):
+        self.book_id = book_id  # Идентификатор книги
+        self.title = title  # Название книги
+        self.author = author  # Автор книги
+        self.genre = genre  # Жанр книги
+        self.year = year  # Год издания книги
+
+    # Строковое представление книги
+    def __str__(self):
+        return f"Книга: {self.title}, Автор: {self.author}, Жанр: {self.genre}, Год издания: {self.year}"
+
+    # Операция сравнения книг по ID
+    def __eq__(self, other):
+        if isinstance(other, Book):
+            return self.book_id == other.book_id
+        return False
+
+    # Операция вычисления длины книги (по длине её названия)
+    def __len__(self):
+        return len(self.title)
+
+    # Метод получения информации о книге
+    def get_book_info(self):
+        return f"Книга '{self.title}', автор: {self.author}, жанр: {self.genre}, год: {self.year}"
+
+class Reader:
+    # Конструктор класса Читатель
+    def __init__(self, reader_id, last_name, first_name, middle_name, ticket_number):
+        self.reader_id = reader_id  # Идентификатор читателя
+        self.last_name = last_name  # Фамилия читателя
+        self.first_name = first_name  # Имя читателя
+        self.middle_name = middle_name  # Отчество читателя
+        self.ticket_number = ticket_number  # Номер читательского билета
+
+    # Строковое представление читателя
+    def __str__(self):
+        return f"Читатель: {self.last_name} {self.first_name} {self.middle_name}, Билет № {self.ticket_number}"
+
+    # Операция сравнения читателей по номеру билета
+    def __eq__(self, other):
+        if isinstance(other, Reader):
+            return self.ticket_number == other.ticket_number
+        return False
+
+class Issue:
+    # Конструктор класса Выдача
+    def __init__(self, reader, book, issue_date):
+        self.reader = reader  # Читатель, которому выдана книга
+        self.book = book  # Книга, которая выдана
+        self.issue_date = issue_date  # Дата выдачи книги
+
+    # Строковое представление выдачи
+    def __str__(self):
+        return f"Выдача: {self.reader.first_name} {self.reader.last_name} - {self.book.title}, Дата выдачи: {self.issue_date}"
+
+    # Операция сравнения выдач по читателю и книге
+    def __eq__(self, other):
+        if isinstance(other, Issue):
+            return self.reader == other.reader and self.book == other.book
+        return False
+
+# Функция загрузки данных о книгах из текстового файла
+def load_books():
+    books = []  # Список для хранения объектов книг
+    try:
+        # Открываем файл с данными о книгах
+        with open('books.txt', mode='r', encoding='utf-8') as file:
+            lines = file.readlines()  # Читаем все строки из файла
+            for line in lines[1:]:  # Пропускаем заголовок (первую строку)
+                # Разделяем строку по символу ";"
+                book_id, title, author, genre, year = line.strip().split(';')
+                # Создаем объект книги и добавляем в список
+                books.append(Book(int(book_id), title, author, genre, int(year)))
+    except FileNotFoundError:
+        print("Ошибка: файл books.txt не найден.")  # Если файл не найден, выводим ошибку
+    return books  # Возвращаем список книг
+
+# Функция загрузки данных о читателях из текстового файла
+def load_readers():
+    readers = []  # Список для хранения объектов читателей
+    try:
+        # Открываем файл с данными о читателях
+        with open('readers.txt', mode='r', encoding='utf-8') as file:
+            lines = file.readlines()  # Читаем все строки из файла
+            for line in lines[1:]:  # Пропускаем заголовок
+                # Разделяем строку по символу ";"
+                reader_id, last_name, first_name, middle_name, ticket_number = line.strip().split(';')
+                # Создаем объект читателя и добавляем в список
+                readers.append(Reader(int(reader_id), last_name, first_name, middle_name, ticket_number))
+    except FileNotFoundError:
+        print("Ошибка: файл readers.txt не найден.")  # Если файл не найден, выводим ошибку
+    return readers  # Возвращаем список читателей
+
+# Функция загрузки данных о выдачах из текстового файла
+def load_issues():
+    issues = []  # Список для хранения выдач
+    try:
+        # Открываем файл с данными о выдачах
+        with open('issues.txt', mode='r', encoding='utf-8') as file:
+            lines = file.readlines()  # Читаем все строки из файла
+            for line in lines[1:]:  # Пропускаем заголовок
+                # Разделяем строку по символу ";"
+                reader_name, book_title, issue_date = line.strip().split(';')
+                # Добавляем данные о выдаче в список
+                issues.append({"reader_name": reader_name, "book_title": book_title, "issue_date": issue_date})
+    except FileNotFoundError:
+        print("Ошибка: файл issues.txt не найден.")  # Если файл не найден, выводим ошибку
+    return issues  # Возвращаем список выдач
+
+# Функция сохранения данных в текстовый файл
+def save_issues_to_txt(issues):
+    try:
+        # Открываем файл для записи в текстовый файл
+        with open('filtered_issues.txt', mode='w', encoding='utf-8') as file:
+            file.write("reader_name;book_title;issue_date\n")  # Записываем заголовок
+            # Записываем каждую запись в файл
+            for issue in issues:
+                file.write(f"{issue['reader_name']};{issue['book_title']};{issue['issue_date']}\n")
+    except Exception as e:
+        print(f"Ошибка при сохранении файла: {e}")  # Если ошибка при сохранении файла, выводим сообщение
+
+# Функция сохранения данных в файл Excel
+def save_issues_to_excel(issues):
+    try:
+        # Создаем новый Excel файл
+        wb = openpyxl.Workbook()
+        ws = wb.active  # Активный лист
+        ws.title = "Issue Records"  # Название листа
+
+        # Записываем заголовки в файл
+        ws.append(["reader_name", "book_title", "issue_date"])
+
+        # Записываем данные о каждой выдаче
+        for issue in issues:
+            ws.append([issue['reader_name'], issue['book_title'], issue['issue_date']])
+
+        # Сохраняем файл Excel с именем 'filtered_issues.xlsx'
+        wb.save('filtered_issues.xlsx')
+        print("Данные успешно сохранены в файл 'filtered_issues.xlsx'.")  # Сообщение об успешном сохранении
+    except Exception as e:
+        print(f"Ошибка при сохранении Excel файла: {e}")  # Сообщение об ошибке при сохранении
+
+# Функция фильтрации выдач по дате
+def filter_issues_by_date(issues, date):
+    # Возвращаем только те выдачи, которые соответствуют введенной дате
+    return [issue for issue in issues if issue["issue_date"] == date]
+
+# Главная программа
+if __name__ == "__main__":
+    # Загружаем данные из файлов
+    books = load_books()  # Загрузка книг
+    readers = load_readers()  # Загрузка читателей
+    issues = load_issues()  # Загрузка выдач
+
+    # Ввод даты для поиска
+    issue_date = input("Введите дату для поиска выдач книг (в формате YYYY-MM-DD): ")
+
+    # Проверка формата даты
+    if len(issue_date) == 10 and issue_date[4] == '-' and issue_date[7] == '-':
+        if issue_date[0:4].isdigit() and issue_date[5:7].isdigit() and issue_date[8:10].isdigit():
+            # Фильтруем выдачи по введенной дате
+            filtered_issues = filter_issues_by_date(issues, issue_date)
+
+            # Сохраняем результат в файл .txt
+            save_issues_to_txt(filtered_issues)
+
+            # Сохраняем результат в файл .xlsx (Excel)
+            save_issues_to_excel(filtered_issues)
+        else:
+            print("Ошибка: неверный формат даты. Пожалуйста, используйте формат YYYY-MM-DD.")
+    else:
+        print("Ошибка: неверный формат даты. Пожалуйста, используйте формат YYYY-MM-DD.")
+
+
+Книги:
+book_id;title;author;genre;year
+1;Война и мир;Лев Толстой;Роман;1869
+2;Преступление и наказание;Федор Достоевский;Роман;1866
+3;Анна Каренина;Лев Толстой;Роман;1877
+
+Читатели:
+reader_id;last_name;first_name;middle_name;ticket_number
+1;Иванов;Иван;Иванович;12345
+2;Петров;Петр;Петрович;67890
+
+
+Выдача:
+reader_name;book_title;issue_date
+Иван Иванов;Война и мир;2024-12-28
+Петр Петров;Преступление и наказание;2024-12-28
+Иван Иванов;Анна Каренина;2024-12-29
+Петр Петров;Война и мир;2024-12-28
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ПРОВЕРКА МЕТОДОВ
+# Пример использования программы
+if __name__ == "__main__":
+    # Создание книг
+    book1 = Book(1, "Война и мир", "Лев Толстой", "Роман", 1869)
+    book2 = Book(2, "Преступление и наказание", "Федор Достоевский", "Роман", 1866)
+    book3 = Book(3, "Анна Каренина", "Лев Толстой", "Роман", 1877)
+
+    # Создание читателя
+    reader1 = Reader(1, "Иванов", "Иван", "Иванович", "12345")
+    reader2 = Reader(2, "Петров", "Петр", "Петрович", "67890")
+
+    # Создание ролей
+    librarian1 = LibrarianRole("Мария")
+    admin1 = AdminRole("Алексей")
+
+    # Администратор добавляет книги
+    admin1.add_book([book1, book2], book3)
+
+    # Читатель хочет просмотреть книги
+    print("\n--- Просмотр книг ---")
+    reader1.borrow_book(librarian1, book1, "2024-12-28")
+
+    # Сравнение книг
+    print("\n--- Сравнение книг ---")
+    print(book1 == book2)  # Ожидается False, так как книги разные по ID
+
+    # Длина книги
+    print("\n--- Длина книги ---")
+    print(f"Длина названия книги '{book1.title}': {len(book1)} символов")
+
+    # Добавление книги
+    print("\n--- Добавление книг ---")
+    new_books = book1 + book2
+    for b in new_books:
+        print(b)
+
+    # Длина имени читателя
+    print("\n--- Длина имени читателя ---")
+    print(f"Длина имени читателя '{reader1.first_name}': {len(reader1)} символов")
+
+    # Сравнение читателей
+    print("\n--- Сравнение читателей ---")
+    print(reader1 == reader2)  # Ожидается False, так как билеты разные

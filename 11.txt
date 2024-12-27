@@ -1,0 +1,194 @@
+import openpyxl  # Для работы с Excel
+from openpyxl import Workbook  # Для создания нового Excel-файла
+
+
+class Teacher:
+    """Класс для представления преподавателя."""
+    def __init__(self, teacher_id, name):
+        self.teacher_id = teacher_id  # Уникальный ID преподавателя
+        self.name = name  # Имя преподавателя
+
+    def __str__(self):
+        return f"{self.teacher_id}: {self.name}"  # Строковое представление объекта
+
+
+class Group:
+    """Класс для представления группы студентов."""
+    def __init__(self, group_id, name):
+        self.group_id = group_id  # Уникальный ID группы
+        self.name = name  # Название группы
+
+    def __str__(self):
+        return f"{self.group_id}: {self.name}"  # Строковое представление объекта
+
+
+class Discipline:
+    """Класс для представления дисциплины."""
+    def __init__(self, discipline_id, name):
+        self.discipline_id = discipline_id  # Уникальный ID дисциплины
+        self.name = name  # Название дисциплины
+
+    def __str__(self):
+        return f"{self.discipline_id}: {self.name}"  # Строковое представление объекта
+
+
+class Lesson:
+    """Класс для представления занятия."""
+    def __init__(self, lesson_id, teacher_id, group_id, discipline_id, date, duration):
+        self.lesson_id = lesson_id  # Уникальный ID занятия
+        self.teacher_id = teacher_id  # ID преподавателя, ведущего занятие
+        self.group_id = group_id  # ID группы, которая посещает занятие
+        self.discipline_id = discipline_id  # ID дисциплины занятия
+        self.date = date  # Дата занятия
+        self.duration = duration  # Продолжительность занятия в часах
+
+    def __str__(self):
+        return (f"Lesson {self.lesson_id}: Teacher {self.teacher_id}, Group {self.group_id}, "
+                f"Discipline {self.discipline_id}, Date {self.date}, Duration {self.duration} hours")
+
+
+class Journal:
+    """Класс для представления журнала занятий."""
+    def __init__(self):
+        self.lessons = []  # Список всех занятий
+
+    def add_lesson(self, lesson):
+        """Добавляет занятие в журнал."""
+        self.lessons.append(lesson)
+
+    def get_lessons_by_teacher(self, teacher_id):
+        """Возвращает список занятий для конкретного преподавателя."""
+        return [lesson for lesson in self.lessons if lesson.teacher_id == teacher_id]
+
+    def __len__(self):
+        """Возвращает общее количество занятий."""
+        return len(self.lessons)
+
+
+def load_data_from_file(file_path):
+    """
+    Загружает данные из текстового файла.
+    :param file_path: Путь к входному файлу.
+    :return: Словари с данными и объект журнала.
+    """
+    teachers = {}  # Словарь для хранения преподавателей
+    groups = {}  # Словарь для хранения групп
+    disciplines = {}  # Словарь для хранения дисциплин
+    journal = Journal()  # Журнал для хранения занятий
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        # Открываем файл для чтения
+        for line in file:
+            # Читаем файл построчно
+            parts = line.strip().split(";")  # Разделяем строку по символу ";"
+            record_type = parts[0]  # Определяем тип записи (teacher, group, discipline, lesson)
+
+            if record_type == "teacher":
+                # Если запись о преподавателе
+                teacher_id, name = int(parts[1]), parts[2]
+                teachers[teacher_id] = Teacher(teacher_id, name)
+
+            elif record_type == "group":
+                # Если запись о группе
+                group_id, name = int(parts[1]), parts[2]
+                groups[group_id] = Group(group_id, name)
+
+            elif record_type == "discipline":
+                # Если запись о дисциплине
+                discipline_id, name = int(parts[1]), parts[2]
+                disciplines[discipline_id] = Discipline(discipline_id, name)
+
+            elif record_type == "lesson":
+                # Если запись о занятии
+                lesson_id = int(parts[1])
+                teacher_id = int(parts[2])
+                group_id = int(parts[3])
+                discipline_id = int(parts[4])
+                date = parts[5]
+                duration = int(parts[6])
+                journal.add_lesson(Lesson(lesson_id, teacher_id, group_id, discipline_id, date, duration))
+
+    return teachers, groups, disciplines, journal
+
+
+def generate_teacher_report(teachers, journal, teacher_id, output_excel_file, output_text_file):
+    """
+    Формирует отчет по преподавателю и сохраняет его в Excel и текстовый файл.
+    :param teachers: Словарь с преподавателями.
+    :param journal: Объект журнала занятий.
+    :param teacher_id: ID преподавателя.
+    :param output_excel_file: Путь к выходному Excel-файлу.
+    :param output_text_file: Путь к выходному текстовому файлу.
+    """
+    if teacher_id not in teachers:
+        # Проверяем, существует ли преподаватель с указанным ID
+        return
+
+    teacher = teachers[teacher_id]  # Получаем объект преподавателя
+    teacher_lessons = journal.get_lessons_by_teacher(teacher_id)  # Занятия преподавателя
+    total_lessons = len(teacher_lessons)  # Общее количество занятий
+
+    # Создание Excel-файла
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = f"Отчет {teacher.name}"
+
+    # Заголовки таблицы
+    sheet.append(["ID Занятия", "ID Группы", "ID Дисциплины", "Дата", "Продолжительность"])
+    for lesson in teacher_lessons:
+        # Добавляем данные занятий в таблицу
+        sheet.append([
+            lesson.lesson_id,
+            lesson.group_id,
+            lesson.discipline_id,
+            lesson.date,
+            lesson.duration
+        ])
+    sheet.append([])  # Пустая строка
+    sheet.append(["Общее количество занятий", total_lessons])  # Итоговая строка
+
+    workbook.save(output_excel_file)  # Сохраняем Excel-файл
+
+    # Создание текстового отчета
+    with open(output_text_file, "w", encoding="utf-8") as text_file:
+        text_file.write(f"Отчет для преподавателя: {teacher.name}\n")
+        text_file.write("Журнал занятий:\n")
+        for lesson in teacher_lessons:
+            text_file.write(f"{lesson}\n")
+        text_file.write(f"\nОбщее количество занятий: {total_lessons}\n")
+
+
+if __name__ == "__main__":
+    input_file = "data.txt"  # Входной файл с данными
+    output_excel_file = "teacher_report.xlsx"  # Файл для сохранения отчета в формате Excel
+    output_text_file = "teacher_report.txt"  # Файл для сохранения отчета в текстовом формате
+
+    # Загрузка данных из файла
+    teachers, groups, disciplines, journal = load_data_from_file(input_file)
+
+    try:
+        # Пользователь вводит ID преподавателя
+        teacher_id = int(input("Введите ID преподавателя: "))
+        # Генерация отчета для указанного преподавателя
+        generate_teacher_report(teachers, journal, teacher_id, output_excel_file, output_text_file)
+    except ValueError:
+        # Обработка ошибки ввода
+        print("Ошибка: Введите корректный числовой ID.")
+
+При делении на модули:
+from teacher import Teacher
+from group import Group
+from discipline import Discipline
+from lesson import Lesson
+from journal import Journal
+
+Входной:
+teacher;1;Иванов Иван Иванович
+teacher;2;Петров Петр Петрович
+group;1;Группа 101
+group;2;Группа 102
+discipline;1;Математика
+discipline;2;Физика
+lesson;1;1;1;1;2024-01-15;2
+lesson;2;1;1;2;2024-01-16;3
+lesson;3;2;2;1;2024-01-17;1
